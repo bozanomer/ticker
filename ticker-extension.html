@@ -1,167 +1,175 @@
 <!DOCTYPE html>
-
 <html lang="tr">
-
 <head>
+    <meta charset="utf-8">
+    <title>OYAK Şirket Bandı</title>
 
-<meta charset="utf-8">
+    <script src="./tableau.extensions.1.17.0.js"></script>
 
-<title>OYAK Ticker</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            align-items: center;
+        }
 
-<script src="./tableau.extensions.1.latest.min.js"></script>
+        #ticker {
+            white-space: nowrap;
+            padding-left: 100%;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            font-weight: bold;
+            animation: marquee 25s linear infinite;
+        }
 
-<style>
+        @keyframes marquee {
+            from {
+                transform: translateX(0);
+            }
 
-html,body{
-
-margin:0;
-
-height:100%;
-
-background:black;
-
-overflow:hidden;
-
-display:flex;
-
-align-items:center;
-
-}
-
-#ticker{
-
-white-space:nowrap;
-
-padding-left:100%;
-
-font:600 15px Arial;
-
-color:white;
-
-animation:marquee 25s linear infinite;
-
-}
-
-@keyframes marquee{
-
-0%{
-
-transform:translateX(0);
-
-}
-
-100%{
-
-transform:translateX(-100%);
-
-}
-
-}
-
-</style>
-
+            to {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<div id="ticker">
-
-Yükleniyor...
-
-</div>
+<div id="ticker">Yükleniyor...</div>
 
 <script>
 
-const SHEET_NAME="Notes";
+const SHEET_NAME = "Notes";
+const FIELD_NAME = "Notes";
 
-const FIELD_NAME="Notes";
+window.onload = init;
 
-async function start(){
+async function init() {
 
-try{
+    try {
 
-await tableau.extensions.initializeAsync();
+        console.log("Extension başlıyor...");
 
-const dashboard=tableau.extensions.dashboardContent.dashboard;
+        if (typeof tableau === "undefined") {
+            setText("Tableau API bulunamadı.");
+            console.error("tableau undefined");
+            return;
+        }
 
-const sheet=dashboard.worksheets.find(x=>x.name===SHEET_NAME);
+        await tableau.extensions.initializeAsync();
 
-if(!sheet){
+        console.log("Initialize başarılı");
 
-setText("Worksheet bulunamadı.");
+        const dashboard = tableau.extensions.dashboardContent.dashboard;
 
-return;
+        console.log(
+            "Worksheetler:",
+            dashboard.worksheets.map(x => x.name)
+        );
 
-}
+        const sheet = dashboard.worksheets.find(
+            x => x.name === SHEET_NAME
+        );
 
-await refresh(sheet);
+        if (!sheet) {
 
-dashboard.worksheets.forEach(ws=>{
+            setText(
+                "Worksheet bulunamadı : " +
+                SHEET_NAME
+            );
 
-ws.addEventListener(
+            return;
+        }
 
-tableau.TableauEventType.FilterChanged,
+        await updateTicker(sheet);
 
-()=>refresh(sheet)
+        dashboard.worksheets.forEach(ws => {
 
-);
+            ws.addEventListener(
+                tableau.TableauEventType.FilterChanged,
+                async () => {
 
-});
+                    console.log("Filtre değişti");
 
-}
+                    await updateTicker(sheet);
 
-catch(e){
+                }
+            );
 
-setText(e.message);
+        });
 
-console.error(e);
+    }
 
-}
+    catch (e) {
 
-}
+        console.error(e);
 
-async function refresh(sheet){
+        setText(e.message);
 
-const data=await sheet.getSummaryDataAsync();
-
-const col=data.columns.findIndex(c=>c.fieldName===FIELD_NAME);
-
-if(col<0){
-
-setText("Kolon bulunamadı.");
-
-return;
-
-}
-
-const txt=data.data
-
-.map(r=>r[col].formattedValue)
-
-.join("   ●   ");
-
-setText(txt);
-
-}
-
-function setText(text){
-
-const ticker=document.getElementById("ticker");
-
-ticker.style.animation="none";
-
-void ticker.offsetWidth;
-
-ticker.innerHTML=text;
-
-ticker.style.animation="marquee 25s linear infinite";
+    }
 
 }
 
-start();
+async function updateTicker(sheet) {
+
+    try {
+
+        const table = await sheet.getSummaryDataAsync();
+
+        console.log("Kolonlar:");
+
+        table.columns.forEach(c =>
+            console.log(c.fieldName)
+        );
+
+        let columnIndex = table.columns.findIndex(c =>
+            c.fieldName.toLowerCase().includes(FIELD_NAME.toLowerCase())
+        );
+
+        if (columnIndex < 0)
+            columnIndex = 0;
+
+        const text = table.data
+            .map(r => r[columnIndex].formattedValue)
+            .filter(v => v)
+            .join("   ●   ");
+
+        setText(text);
+
+    }
+
+    catch (e) {
+
+        console.error(e);
+
+        setText(e.message);
+
+    }
+
+}
+
+function setText(text) {
+
+    const ticker = document.getElementById("ticker");
+
+    ticker.style.animation = "none";
+
+    ticker.offsetHeight;
+
+    ticker.innerText = text;
+
+    ticker.style.animation = "marquee 25s linear infinite";
+
+}
 
 </script>
 
 </body>
-
 </html>
