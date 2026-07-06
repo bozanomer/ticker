@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="https://cdn.jsdelivr.net/npm/@tableau/extensions-api@latest/lib/tableau.extensions.1.latest.min.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #000000;
+    overflow: hidden;
+    height: 100%;
+  }
+  .ticker-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .ticker {
+    display: inline-block;
+    white-space: nowrap;
+    padding-left: 100%;
+    animation: scroll-left 22s linear infinite;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 15px;
+    color: #ffffff;
+  }
+  @keyframes scroll-left {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+</style>
+</head>
+<body>
+  <div class="ticker-wrap">
+    <div class="ticker" id="tickerText">Yükleniyor...</div>
+  </div>
+
+<script>
+  const NOTES_SHEET_NAME = "Notes"; // <-- Buraya kendi worksheet adını yaz
+
+  let dashboard;
+
+  tableau.extensions.initializeAsync().then(() => {
+    dashboard = tableau.extensions.dashboardContent.dashboard;
+    const sheet = dashboard.worksheets.find(ws => ws.name === NOTES_SHEET_NAME);
+
+    if (!sheet) {
+      document.getElementById("tickerText").innerText =
+        "Worksheet bulunamadı: " + NOTES_SHEET_NAME;
+      return;
+    }
+
+    // İlk yükleme
+    updateTicker(sheet);
+
+    // Filtre değişince otomatik güncelle
+    sheet.addEventListener(tableau.TableauEventType.FilterChanged, () => {
+      updateTicker(sheet);
+    });
+  });
+
+  function updateTicker(sheet) {
+    sheet.getSummaryDataAsync().then(dataTable => {
+      const rows = dataTable.data;
+      if (!rows || rows.length === 0) {
+        document.getElementById("tickerText").innerText = "";
+        return;
+      }
+
+      // Notes kolonunu bul
+      const columns = dataTable.columns;
+      const notesColIndex = columns.findIndex(c =>
+        c.fieldName.toLowerCase().includes("notes")
+      );
+
+      let text = "";
+      if (notesColIndex >= 0) {
+        text = rows.map(row => row[notesColIndex].formattedValue).join(" — ");
+      } else {
+        // Notes kolonu bulunamazsa ilk kolonu kullan
+        text = rows.map(row => row[0].formattedValue).join(" — ");
+      }
+
+      // Aynı metni animasyon boşluk vermeden akıtmak için tekrar ekleyelim
+      document.getElementById("tickerText").innerText = text;
+    });
+  }
+</script>
+</body>
+</html>
