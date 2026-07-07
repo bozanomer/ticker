@@ -90,18 +90,16 @@ async function init() {
 
         await updateTicker(sheet);
 
-        dashboard.worksheets.forEach(ws => {
+sheet.addEventListener(
+    tableau.TableauEventType.FilterChanged,
+    async () => {
 
-            ws.addEventListener(
-                tableau.TableauEventType.FilterChanged,
-                async () => {
+        console.log("Notes filtresi değişti");
 
-                    console.log("Filtre değişti");
+        await updateTicker(sheet);
 
-                    await updateTicker(sheet);
-
-                }
-            );
+    }
+);
 
         });
 
