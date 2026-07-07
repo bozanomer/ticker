@@ -88,20 +88,20 @@ async function init() {
             return;
         }
 
+        // İlk yükleme
         await updateTicker(sheet);
 
-sheet.addEventListener(
-    tableau.TableauEventType.FilterChanged,
-    async () => {
+        // SADECE Notes worksheet'ini dinle
+        sheet.addEventListener(
+            tableau.TableauEventType.FilterChanged,
+            async () => {
 
-        console.log("Notes filtresi değişti");
+                console.log("Notes filtresi değişti");
 
-        await updateTicker(sheet);
+                await updateTicker(sheet);
 
-    }
-);
-
-        });
+            }
+        );
 
     }
 
